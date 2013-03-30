@@ -1,4 +1,13 @@
+;; (setq debug-on-error t)
+;; (setq debug-on-message t)
+
+(setq frame-title-format '(buffer-file-name "%f" ("%b")))
+(tool-bar-mode -1)
+(unless (display-graphic-p)
+  (menu-bar-mode -1))
+
 (load "~/.emacs.d/plugins/theme.el")
+
 (defun add-subfolders-to-load-path (parent-dir)
   "Add subfolders to load path"
   (dolist (f (directory-files parent-dir))
@@ -7,73 +16,156 @@
                  (not (equal f ".."))
                  (not (equal f ".")))
         (add-to-list 'load-path name)))))
+
 (add-to-list 'load-path "~/.emacs.d/")
 (add-to-list 'load-path "~/.emacs.d/plugins/")
 (add-subfolders-to-load-path "~/.emacs.d/plugins/")
-(require 'undo-tree)
-(global-undo-tree-mode)
 
-(setq evil-want-C-u-scroll t)
-(setq show-paren-delay 0)
-(show-paren-mode)
+(defun main-startup ()
+  (require 'undo-tree)
+  (global-undo-tree-mode)
 
-(require 'helm-config)
-(helm-mode 1)
+  (setq evil-want-C-u-scroll t)
+  (setq show-paren-delay 0)
+  (show-paren-mode)
 
-(require 'evil)
-(evil-mode 1)
+  (require 'evil)
+  (evil-mode 1)
+  (evil-define-command repeat-no-move (&optional count)
+    :repeat ignore
+    (interactive)
+    (evil-repeat count t))
+  (setup-compile-command)
 
-(define-key evil-normal-state-map [escape] 'keyboard-quit)
-(define-key evil-visual-state-map [escape] 'keyboard-quit)
-(define-key evil-replace-state-map [escape] 'keyboard-quit)
-(define-key evil-motion-state-map [escape] 'keyboard-quit)
-(define-key evil-operator-state-map [escape] 'keyboard-quit)
+  (evil-define-command repeat-and-next-line (&optional count)
+    :repeat ignore
+    (interactive)
+    (repeat-no-move count)
+    (next-line))
 
-(define-key evil-visual-state-map ";" 'comment-or-uncomment-region)
-(define-key evil-visual-state-map "\\c " 'comment-or-uncomment-region)
-(define-key evil-normal-state-map "\C-n" nil)
-(define-key evil-normal-state-map "\C-p" nil)
+  (make-escape-quit)
+  (add-custom-evil-bindings)
 
-;;; esc quits
-(global-set-key [escape] 'keyboard-escape-quit)
-(global-set-key "\C-s" 'save-buffer)
-(define-key isearch-mode-map [escape] 'isearch-abort)
-(define-key minibuffer-local-map [escape] 'keyboard-escape-quit)
-(define-key minibuffer-local-filename-completion-map [escape] 'keyboard-escape-quit)
-(define-key minibuffer-local-filename-must-match-map [escape] 'keyboard-escape-quit)
-(define-key minibuffer-local-must-match-filename-map [escape] 'keyboard-escape-quit)
-(define-key minibuffer-local-shell-command-map [escape] 'keyboard-escape-quit)
-(define-key minibuffer-local-ns-map [escape] 'keyboard-escape-quit)
-(define-key minibuffer-local-completion-map [escape] 'keyboard-escape-quit)
-(define-key minibuffer-local-must-match-map [escape] 'keyboard-escape-quit)
-(define-key minibuffer-local-isearch-map [escape] 'keyboard-escape-quit)
+  (require 'helm-config)
+  (helm-mode 1)
 
-(require 'yasnippet)
-(yas/initialize)
+  (require 'redshank-loader)
+
+  (eval-after-load "redshank-loader"
+    `(redshank-setup '(lisp-mode-hook
+                       slime-repl-mode-hook) t))
+
+  (load-language-modes)
+  (load-version-control)
+
+  (require 'autopair)
+  (autopair-global-mode) ;; enable autopair in all buffers
+
+  (autoload 'icy-mode "icicles"
+    "Turn on icicles completion." t)
+  (icy-mode 1)
+
+  (require 'whitespace)
+
+  (add-hook 'c-mode-hook 'smart-tabs-mode-enable)
+  (add-hook 'javascript-mode-hook 'smart-tabs-mode-enable)
+  (add-hook 'java-mode-hook
+            '(lambda ()
+               (custom-indent-mode)
+               (smart-tabs-mode -1)))
+
+
+  (setup-ac)
+  (autoload 'enable-paredit-mode "paredit"
+    "Turn on pseudo-structural editing of Lisp code."
+    t)
+  (setup-org-mode)
+
+  (add-hook 'lisp-mode-hook 'all-lisp-mode)
+  (add-hook 'emacs-lisp-mode-hook 'all-lisp-mode)
+
+  (setup-smooth-scroll))
+
+(add-hook 'emacs-startup-hook
+          'main-startup)
+
+(defun make-escape-quit ()
+  (define-key evil-normal-state-map [escape] 'keyboard-quit)
+  (define-key evil-visual-state-map [escape] 'keyboard-quit)
+  (define-key evil-replace-state-map [escape] 'keyboard-quit)
+  (define-key evil-motion-state-map [escape] 'keyboard-quit)
+  (define-key evil-operator-state-map [escape] 'keyboard-quit)
+  (global-set-key [escape] 'keyboard-escape-quit)
+  (global-set-key "\C-s" 'save-buffer)
+  (define-key isearch-mode-map [escape] 'isearch-abort)
+  (define-key minibuffer-local-map [escape] 'keyboard-escape-quit)
+  (define-key minibuffer-local-filename-completion-map [escape] 'keyboard-escape-quit)
+  (define-key minibuffer-local-filename-must-match-map [escape] 'keyboard-escape-quit)
+  (define-key minibuffer-local-must-match-filename-map [escape] 'keyboard-escape-quit)
+  (define-key minibuffer-local-shell-command-map [escape] 'keyboard-escape-quit)
+  (define-key minibuffer-local-ns-map [escape] 'keyboard-escape-quit)
+  (define-key minibuffer-local-completion-map [escape] 'keyboard-escape-quit)
+  (define-key minibuffer-local-must-match-map [escape] 'keyboard-escape-quit)
+  (define-key minibuffer-local-isearch-map [escape] 'keyboard-escape-quit))
+
+(defun comment-current-line ()
+  (interactive)
+  (comment-or-uncomment-region (line-beginning-position) (line-end-position)))
+
+(defun add-custom-evil-bindings ()
+  (define-key evil-normal-state-map ";" 'comment-current-line)
+  (define-key evil-visual-state-map ";" 'comment-or-uncomment-region)
+  (define-key evil-visual-state-map "\\c " 'comment-or-uncomment-region)
+  (define-key evil-normal-state-map "\C-n" nil)
+  (define-key evil-normal-state-map "\C-p" nil)
+  (define-key evil-normal-state-map (kbd "C-M-q") 'my-indent-sexp)
+  (define-key evil-insert-state-map (kbd "C-M-q") 'my-indent-sexp)
+  (define-key evil-visual-state-map (kbd "C-M-q") 'my-indent-sexp)
+  (define-key evil-normal-state-map (kbd ".") 'repeat-no-move)
+  (define-key evil-normal-state-map (kbd ",") 'repeat-and-next-line))
 
 (set-language-environment "utf-8")
-(load (expand-file-name "~/quicklisp/slime-helper.el"))
-(setq slime-lisp-implementations
-      '((ccl64 ("/usr/bin/ccl64" "-K" "'utf-8-unix") :coding-system utf-8-unix)
-        (sbcl ("/usr/bin/sbcl") :coding-system utf-8-unix)
-        (ccl ("/usr/bin/ccl" "-K" "'utf-8-unix") :coding-system utf-8-unix)))
 
-(add-to-list 'load-path "/usr/share/emacs/site-lisp/slime/")
-(require 'slime)
-(setq slime-net-coding-system 'utf-8-unix)
-(slime-setup '(slime-fancy))
+(defun setup-slime ()
+  (load (expand-file-name "~/quicklisp/slime-helper.el"))
+  (setq slime-lisp-implementations
+        '((ccl64 ("/usr/bin/ccl64" "-K" "'utf-8-unix") :coding-system utf-8-unix)
+          (sbcl ("/usr/bin/sbcl") :coding-system utf-8-unix)
+          (ccl ("/usr/bin/ccl" "-K" "'utf-8-unix") :coding-system utf-8-unix)))
 
-(setq ac-use-menu-map t)
-(require 'auto-complete-config)
-(add-to-list 'ac-dictionary-directories "~/.emacs.d/plugins/ac-install/ac-dict")
-(ac-config-default)
-(global-auto-complete-mode t)
-(eval-after-load "auto-complete"
-  '(progn
-     (add-to-list 'ac-modes 'slime-repl-mode)
-     (add-to-list 'ac-modes 'lisp-mode)
-     (add-to-list 'ac-modes 'common-lisp-mode)
-     (add-to-list 'ac-modes 'slime-mode)))
+  (add-to-list 'load-path "/usr/share/emacs/site-lisp/slime/")
+  (require 'slime)
+  (setq slime-net-coding-system 'utf-8-unix)
+  (slime-setup '(slime-fancy)))
+
+(defun setup-ac ()
+  (setq ac-use-menu-map t)
+  (require 'auto-complete-config)
+  (add-to-list 'ac-dictionary-directories "~/.emacs.d/plugins/ac-install/ac-dict")
+  (ac-config-default)
+  (global-auto-complete-mode t)
+  (add-hook 'python-mode-hook 'inferior-python-mode)
+  (eval-after-load "auto-complete"
+    '(progn
+       (setup-slime)
+       (require 'ac-slime)
+       (set-up-slime-ac)
+       (add-hook 'slime-mode-hook 'set-up-slime-ac)
+       (add-hook 'slime-repl-mode-hook 'set-up-slime-ac)
+       (add-to-list 'ac-modes 'slime-repl-mode)
+       (add-to-list 'ac-modes 'lisp-mode)
+       (add-to-list 'ac-modes 'common-lisp-mode)
+       (add-to-list 'ac-modes 'slime-mode)
+       (setq ac-completing-map
+             (let ((map (make-sparse-keymap)))
+               (define-key map [escape] 'leave-ac-mode)
+               (define-key map "\t" 'ac-expand)
+               (define-key map [tab] 'ac-expand)
+               (define-key map "\r" 'ac-complete)
+               (define-key map [return] 'ac-complete)
+               (define-key map [down] 'ac-next)
+               (define-key map [up] 'ac-previous)
+               map)))))
 
 (defun leave-ac-mode ()
   (message "Leaving ac mode.")
@@ -82,34 +174,18 @@
   (keyboard-escape-quit)
   (normal-mode))
 
-(define-key ac-completing-map [escape] 'ac-stop)
+(defun setup-org-mode ()
+  (add-to-list 'auto-mode-alist '("\\.\\(org\\|org_archive\\|txt\\)$" . org-mode))
+  (global-font-lock-mode 1)
 
-(require 'ac-slime)
-
-(add-hook 'slime-mode-hook 'set-up-slime-ac)
-(add-hook 'slime-repl-mode-hook 'set-up-slime-ac)
-
-(require 'icicles)
-
-(require 'paredit)
-(autoload 'enable-paredit-mode "paredit"
-  "Turn on pseudo-structural editing of Lisp code."
-  t)
-
-;;;
-;;; Org Mode
-;;;
-(add-to-list 'auto-mode-alist '("\\.\\(org\\|org_archive\\|txt\\)$" . org-mode))
-(global-font-lock-mode 1)
-
-(add-hook 'org-mode-hook
-          '(lambda ()
-             (setq evil-auto-indent nil)
-             (setq whitespace-style
-                   (quote
-                    (face tabs spaces space-before-tab newline
-                    indentation empty space-after-tab space-mark
-                    tab-mark)))))
+  (add-hook 'org-mode-hook
+            '(lambda ()
+               (setq evil-auto-indent nil)
+               (setq whitespace-style
+                     (quote
+                      (face tabs spaces space-before-tab newline
+                            indentation empty space-after-tab space-mark
+                            tab-mark))))))
 
 (defun my-indent-sexp ()
   (interactive)
@@ -122,31 +198,18 @@
           (backward-sexp)))
     (indent-sexp)))
 
-(define-key evil-normal-state-map (kbd "C-M-q") 'my-indent-sexp)
-(define-key evil-insert-state-map (kbd "C-M-q") 'my-indent-sexp)
-(define-key evil-visual-state-map (kbd "C-M-q") 'my-indent-sexp)
-(require 'redshank-loader)
+(defun load-language-modes ()
+  (require 'haskell-mode)
+  (require 'lua-mode)
+  (require 'pure-mode)
+  (require 'sclang)
+  (require 'markdown-mode))
 
-(eval-after-load "redshank-loader"
-   `(redshank-setup '(lisp-mode-hook
-                    slime-repl-mode-hook) t))
-
-(require 'haskell-mode)
-(require 'lua-mode)
-(require 'pure-mode)
-(require 'sclang)
-
-(require 'markdown-mode)
-
-(require 'monky)
-
-;; Available only on mercurial versions 1.9 or higher
-(setq monky-process-type 'cmdserver)
-
-(require 'magit)
-
-(require 'autopair)
-(autopair-global-mode) ;; enable autopair in all buffers
+(defun load-version-control ()
+  (require 'monky)
+  ;; Available only on mercurial versions 1.9 or higher
+  (setq monky-process-type 'cmdserver)
+  (require 'magit))
 
 (setq auto-mode-alist (cons '("wscript" . python-mode) auto-mode-alist))
 (setq c-default-style (quote ((java-mode . "java")
@@ -185,9 +248,13 @@
  ;; '(show-trailing-whitespace t) ; Completion buffers always look terrible....
  '(tab-always-indent (quote complete))
  '(tool-bar-mode nil)
- '(x-select-enable-clipboard t)
- '(yas/global-mode t nil (yasnippet))
- '(yas/snippet-dirs (quote ("~/.emacs.d/snippets")) nil (yasnippet)))
+ '(x-select-enable-clipboard t))
+
+(defun setup-yasnippet ()
+  (require 'yasnippet)
+  (yas/initialize)
+  (yas/load-directory "~/.emacs.d/snippets"))
+(setup-yasnippet)
 
 (setq whitespace-style
       (quote (face tabs spaces space-before-tab indentation
@@ -213,18 +280,22 @@
              (whitespace-mode t)
              (electric-pair-mode -1)))
 
-(defun all-lisp-mode-hook ()
+(defun all-lisp-mode ()
   (setq indent-tabs-mode nil)
-  (setq evil-word "[:word:]_-"))
+  (setq evil-word "[:word:]_-")
+  (enable-paredit-mode)
+  (custom-indent-mode))
 
-(add-hook 'emacs-lisp-mode-hook 'all-lisp-mode-hook)
+(defun setup-language-indents ()
+  (setq js-indent-level 2)
+  (add-hook 'python-mode-hook
+            '(lambda ()
+               (setq indent-tabs-mode nil)
+               (setq evil-shift-width 4)))
+  (add-hook 'c-mode-common-hook 'std-indent-mode)
+  (add-hook 'lisp-mode-hook 'custom-indent-mode))
 
-(add-hook 'lisp-mode-hook 'all-lisp-mode-hook)
 
-(add-hook 'python-mode-hook
-          '(lambda ()
-             (setq indent-tabs-mode nil)
-             (setq evil-shift-width 4)))
 
 (defun std-indent-mode ()
   (interactive)
@@ -244,50 +315,13 @@
   (setq tab-stop-list (quote (2 4 6 8 10 12 14 16 18 20 22 24 26 28 30)))
   (setq evil-shift-width 2))
 
-(add-hook 'c-mode-common-hook 'std-indent-mode)
-(add-hook 'lisp-mode-hook 'custom-indent-mode)
-
-(tool-bar-mode -1)
-(unless (display-graphic-p)
-  (menu-bar-mode -1))
-
 (setf indent-line-function 'insert-tab)
-
-(require 'whitespace)
 
 (defun cleanup ()
   (interactive)
   (whitespace-cleanup)
   (delete-trailing-whitespace))
 
-(setq frame-title-format '(buffer-file-name "%f" ("%b")))
-
-(require 'smart-tabs-mode)
-
-(autoload 'smart-tabs-mode "smart-tabs-mode"
-  "Intelligently indent with tabs, align with spaces!")
-(autoload 'smart-tabs-mode-enable "smart-tabs-mode")
-(autoload 'smart-tabs-advice "smart-tabs-mode")
-
-(add-hook 'c-mode-hook 'smart-tabs-mode-enable)
-(add-hook 'javascript-mode-hook 'smart-tabs-mode-enable)
-(smart-tabs-advice c-indent-line c-basic-offset)
-(smart-tabs-advice c-indent-region c-basic-offset)
-
-(evil-define-command repeat-no-move (&optional count)
-  :repeat ignore
-  (interactive)
-  (evil-repeat count t))
-
-(define-key evil-normal-state-map (kbd ".") 'repeat-no-move)
-
-(evil-define-command repeat-and-next-line (&optional count)
-  :repeat ignore
-  (interactive)
-  (repeat-no-move count)
-  (next-line))
-
-(define-key evil-normal-state-map (kbd ",") 'repeat-and-next-line)
 (defvar hexcolour-keywords
   '(("#[[:xdigit:]]\\{6\\}"
      (0 (put-text-property (match-beginning 0)
@@ -305,21 +339,15 @@
   (define-key evil-normal-state-map (kbd "C-c k") 'compile)
   (define-key evil-normal-state-map (kbd "C-c C-k") 'compile))
 
-(add-hook 'c-mode-common-hook 'setup-compile-command)
-
-(setq js-indent-level 2)
-
-;; scroll one line at a time (less "jumpy" than defaults)
-
-(setq mouse-wheel-scroll-amount '(1 ((shift) . 1))) ;; one line at a time
-
-(setq mouse-wheel-progressive-speed nil) ;; don't accelerate scrolling
-
-(setq mouse-wheel-follow-mouse 't) ;; scroll window under mouse
-
-(setq scroll-step 1) ;; keyboard scroll one line at a time
-
-(icy-mode 1)
+(defun setup-smooth-scroll ()
+  ;; scroll one line at a time (less "jumpy" than defaults)
+  (setq mouse-wheel-scroll-amount '(1 ((shift) . 1)))
+  ;; don't accelerate scrolling
+  ;; (setq mouse-wheel-progressive-speed nil)
+  ;; scroll window under mouse
+  (setq mouse-wheel-follow-mouse 't)
+  ;; keyboard scroll one line at a time
+  (setq scroll-step 1))
 
 (defun what-face (pos)
   (interactive "d")
@@ -327,12 +355,8 @@
                   (get-char-property (point) 'face))))
     (if face (message "Face: %s" face) (message "No face at %d" pos))))
 
-(add-hook 'java-mode-hook
-          '(lambda ()
-             (custom-indent-mode)
-             (smart-tabs-mode -1)))
-
-(add-hook 'auto-complete-mode-hook
+(defun add-ac-mode-hook ()
+  (add-hook 'auto-complete-mode-hook
           '(lambda ()
              (setq ac-completing-map
                    (let ((map (make-sparse-keymap)))
@@ -343,4 +367,18 @@
                      (define-key map [return] 'ac-complete)
                      (define-key map [down] 'ac-next)
                      (define-key map [up] 'ac-previous)
-                     map))))
+                     map)))))
+
+(defun setup-indents()
+  (require 'smart-tabs-mode)
+  (setup-language-indents)
+  (smart-tabs-advice c-indent-line c-basic-offset)
+  (smart-tabs-advice c-indent-region c-basic-offset)
+  (add-hook 'c-mode-hook 'smart-tabs-mode-enable)
+  (add-hook 'javascript-mode-hook 'smart-tabs-mode-enable)
+  (add-hook 'java-mode-hook
+            '(lambda ()
+               (custom-indent-mode)
+               (smart-tabs-mode -1))))
+
+(setup-indents)
