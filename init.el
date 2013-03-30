@@ -253,7 +253,9 @@
 (defun setup-yasnippet ()
   (require 'yasnippet)
   (yas/initialize)
-  (yas/load-directory "~/.emacs.d/snippets"))
+  (yas/load-directory "~/.emacs.d/snippets")
+  (setq yas/snippet-dirs '("~/.emacs.d/snippets")))
+
 (setup-yasnippet)
 
 (setq whitespace-style

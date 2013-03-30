@@ -1,0 +1,48 @@
+[submodule "plugins/yasnippet"]
+	path = plugins/yasnippet
+	url = https://github.com/capitaomorte/yasnippet
+[submodule "plugins/ac-install"]
+	path = plugins/ac-install
+	url = git://github.com/leoncamel/auto-complete.git
+[submodule "plugins/ac-slime"]
+	path = plugins/ac-slime
+	url = git://github.com/purcell/ac-slime.git
+[submodule "plugins/autopair"]
+	path = plugins/autopair
+	url = https://github.com/capitaomorte/autopair.git
+[submodule "plugins/evil"]
+	path = plugins/evil
+	url = git://gitorious.org/evil/evil.git
+[submodule "plugins/fuzzy-el"]
+	path = plugins/fuzzy-el
+	url = git://github.com/m2ym/fuzzy-el.git
+[submodule "plugins/helm"]
+	path = plugins/helm
+	url = https://github.com/emacs-helm/helm.git
+[submodule "plugins/icicles"]
+	path = plugins/icicles
+	url = https://github.com/emacsmirror/icicles.git
+[submodule "plugins/magit"]
+	path = plugins/magit
+	url = git://github.com/magit/magit.git
+[submodule "plugins/markdown-mode"]
+	path = plugins/markdown-mode
+	url = git://jblevins.org/git/markdown-mode.git
+[submodule "plugins/monky"]
+	path = plugins/monky
+	url = git://github.com/ananthakumaran/monky.git
+[submodule "plugins/org-mode"]
+	path = plugins/org-mode
+	url = git://orgmode.org/org-mode.git
+[submodule "plugins/popup-el"]
+	path = plugins/popup-el
+	url = git://github.com/m2ym/popup-el.git
+[submodule "plugins/redshank"]
+	path = plugins/redshank
+	url = http://www.foldr.org/~michaelw/projects/redshank.git
+[submodule "plugins/smarttabs"]
+	path = plugins/smarttabs
+	url = https://github.com/jcsalomon/smarttabs.git
+[submodule "plugins/undo-tree"]
+	path = plugins/undo-tree
+	url = http://www.dr-qubit.org/git/undo-tree.git
